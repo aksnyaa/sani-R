@@ -1,0 +1,418 @@
+---
+title: "САНИ_N4_В4_4_ДеркачАксинья"
+author: "Деркач Аксинья"
+date: "2025-03-14"
+output: pdf_document
+---
+
+```{r message=FALSE, warning=FALSE}
+library(knitr)
+library(MASS)
+library(DescTools)
+library(openxlsx)
+library(rio)
+library(EnvStats)
+library(ggplot2)
+library(pander)
+```
+
+
+### Задание 2.
+
+#### Представление многомерных данных
+
+##### 1. Создание таблицы сопряженности 2х2х2.
+
+```{r}
+Task3 <- read.csv(file = 'sani4.csv', header = TRUE, sep = ";")
+head(Task3)
+table4 <- table(Task3$X, Task3$Y, Task3$Z, dnn = c("movie", "gender", "age"))
+table4
+```
+
+##### 2. Плоская таблица сопряженности
+
+```{r}
+ftable(table4)
+```
+
+##### 3. Плоская таблица частот
+
+```{r}
+ftable4 <- as.data.frame.table(table4)
+ftable4
+```
+
+#### Логлинейный анализ трехмерных таблиц сопряженности
+
+Оцениваем насыщенную модель взаимосвязи предпочтений при выборе фильма (X), пола (Y) и возраста (Z):
+
+1. Для таблицы сопряженности.
+```{r}
+lm4_XYZ <- loglm(
+~ movie * gender * age,
+data = table4)
+lm4_XYZ
+```
+
+2. Для плоской таблицы частот.
+```{r}
+library(MASS)
+lm4_XYZ <- loglm(formula =
+Freq ~ movie * gender * age,
+data = ftable4)
+lm4_XYZ
+```
+
+Для обеих таблиц Likelihood Ratio равно 0. Это означает, что модель идеально соответствует данным.
+Pearson равно 0, что подтверждает идеальное соответствие модели данным.
+df (степени свободы) равно 0, так как в насыщенной модели все параметры используются для описания данных.
+P(> χ^2) равно 1, что указывает на отсутствие статистически значимых отклонений между моделью и данными.
+
+Насыщенная модель идеально описывает данные, но она не полезна для анализа, так как не упрощает данные и не выявляет значимые взаимодействия.
+
+Оценим параметры модели:
+```{r}
+coef(lm4_XYZ)
+```
+
+Можно заметить, что главные эффекты movie и gender значимы и оказывают существенное влияние.
+
+Исключаем взаимодействия movie.gender и movie.age, оставляя только gender.age (YZ/X):
+```{r}
+model_YZ_X <- loglm(~ movie + gender + age + gender:age, data = table4)
+summary(model_YZ_X)
+```
+Модель не адекватна. Аналогично, строим другие модели.
+
+Насыщенная модель (XYZ)
+
+```{r}
+model_XYZ <- loglm(~ movie * gender * age, data = table4)
+summary(model_XYZ)
+```
+
+Модель условной независимости (XY/XZ/YZ)
+
+```{r}
+model_XY_XZ_YZ <- loglm(~ movie * gender + movie * age + gender * age, data = table4)
+summary(model_XY_XZ_YZ)
+```
+
+Модели с отсутствием взаимодействия двух факторов
+XY/XZ:
+
+```{r}
+model_XY_XZ <- loglm(~ movie * gender + movie * age, data = table4)
+summary(model_XY_XZ)
+```
+
+XY/YZ:
+```{r}
+model_XY_YZ <- loglm(~ movie * gender + age * gender:age, data = table4)
+summary(model_XY_YZ)
+```
+
+XZ/YZ:
+
+```{r}
+model_XZ_YZ <- loglm(~ movie * age + gender * age, data = table4)
+summary(model_XZ_YZ)
+```
+
+Модели независимости двух факторов от третьего
+XY/Z:
+
+```{r}
+model_XY_Z <- loglm(~ movie * gender + age, data = table4)
+summary(model_XY_Z)
+```
+
+XZ/Y:
+
+```{r}
+model_XZ_Y <- loglm(~ movie * age + gender, data = table4)
+summary(model_XZ_Y)
+```
+
+Модель главных эффектов трех факторов (X/Y/Z):
+
+```{r}
+model_X_Y_Z <- loglm(~ movie + gender + age, data = table4)
+summary(model_X_Y_Z)
+```
+
+Модели с отсутствием влияния главного эффекта одного фактора
+
+XY:
+
+```{r}
+model_XY <- loglm(~ movie * gender, data = table4)
+summary(model_XY)
+```
+YZ:
+
+```{r}
+model_YZ <- loglm(~ gender * age, data = table4)
+summary(model_YZ)
+```
+
+XZ:
+
+```{r}
+model_XZ <- loglm(~ movie * age, data = table4)
+summary(model_XZ)
+```
+
+Модели с отсутствием влияния главного эффекта одного фактора
+X/Y:
+
+```{r}
+model_X_Y <- loglm(~ movie + gender, data = table4)
+summary(model_X_Y)
+```
+
+Y/Z:
+
+```{r}
+model_Y_Z <- loglm(~ gender + age, data = table4)
+summary(model_Y_Z)
+```
+
+X/Z:
+
+```{r}
+model_X_Z <- loglm(~ movie + age, data = table4)
+summary(model_X_Z)
+```
+
+Модели с отсутствием влияния главного эффекта двух факторов
+X:
+
+```{r}
+model_X <- loglm(~ movie, data = table4)
+summary(model_X)
+```
+
+Y:
+
+```{r}
+model_Y <- loglm(~ gender, data = table4)
+summary(model_Y)
+```
+
+Z:
+
+```{r}
+model_Z <- loglm(~ age, data = table4)
+summary(model_Z)
+```
+
+Равновероятная модель:
+
+```{r}
+model_equal <- loglm(~ 1, data = table4)
+summary(model_equal)
+```
+
+Адекватные модели: 
+XYZ
+XY/XZ/YZ
+XY/XZ
+XY/YZ
+XY/Z
+XY
+
+Таблица итогов:
+
+```{r}
+get_theoretical_frequency <- function(model) {
+  fitted_values <- fitted(model)
+  return(fitted_values[1, 1, 2])  # Ячейка (1,1,2)
+}
+
+
+get_main_effect_X2 <- function(model) {
+  coefficients <- coef(model)
+  return(coefficients$movie[2])  # Вторая категория X
+}
+
+results <- list()
+
+saturated_model <- loglm(~ movie * gender * age, data = table4)
+results[["XYZ"]] <- c(
+  Chi2 = saturated_model$lrt,
+  df = saturated_model$df,
+  p_value = saturated_model$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(saturated_model),
+  Main_Effect_X2 = get_main_effect_X2(saturated_model)
+)
+
+model_XY_XZ_YZ <- loglm(~ movie * gender + movie * age + gender * age, data = table4)
+results[["XY/XZ/YZ"]] <- c(
+  Chi2 = model_XY_XZ_YZ$lrt,
+  df = model_XY_XZ_YZ$df,
+  p_value = model_XY_XZ_YZ$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_XY_XZ_YZ),
+  Main_Effect_X2 = get_main_effect_X2(model_XY_XZ_YZ)
+)
+
+model_XY_XZ <- loglm(~ movie * gender + movie * age, data = table4)
+results[["XY/XZ"]] <- c(
+  Chi2 = model_XY_XZ$lrt,
+  df = model_XY_XZ$df,
+  p_value = model_XY_XZ$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_XY_XZ),
+  Main_Effect_X2 = get_main_effect_X2(model_XY_XZ)
+)
+
+model_XY_YZ <- loglm(~ movie * gender + gender * age, data = table4)
+results[["XY/YZ"]] <- c(
+  Chi2 = model_XY_YZ$lrt,
+  df = model_XY_YZ$df,
+  p_value = model_XY_YZ$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_XY_YZ),
+  Main_Effect_X2 = get_main_effect_X2(model_XY_YZ)
+)
+
+model_XZ_YZ <- loglm(~ movie * age + gender * age, data = table4)
+results[["XZ/YZ"]] <- c(
+  Chi2 = model_XZ_YZ$lrt,
+  df = model_XZ_YZ$df,
+  p_value = model_XZ_YZ$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_XZ_YZ),
+  Main_Effect_X2 = get_main_effect_X2(model_XZ_YZ)
+)
+
+model_XY_Z <- loglm(~ movie * gender + age, data = table4)
+results[["XY/Z"]] <- c(
+  Chi2 = model_XY_Z$lrt,
+  df = model_XY_Z$df,
+  p_value = model_XY_Z$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_XY_Z),
+  Main_Effect_X2 = get_main_effect_X2(model_XY_Z)
+)
+
+model_YZ_X <- loglm(~ gender * age + movie, data = table4)
+results[["YZ/X"]] <- c(
+  Chi2 = model_YZ_X$lrt,
+  df = model_YZ_X$df,
+  p_value = model_YZ_X$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_YZ_X),
+  Main_Effect_X2 = get_main_effect_X2(model_YZ_X)
+)
+
+model_XZ_Y <- loglm(~ movie * age + gender, data = table4)
+results[["XZ/Y"]] <- c(
+  Chi2 = model_XZ_Y$lrt,
+  df = model_XZ_Y$df,
+  p_value = model_XZ_Y$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_XZ_Y),
+  Main_Effect_X2 = get_main_effect_X2(model_XZ_Y)
+)
+
+model_X_Y_Z <- loglm(~ movie + gender + age, data = table4)
+results[["X/Y/Z"]] <- c(
+  Chi2 = model_X_Y_Z$lrt,
+  df = model_X_Y_Z$df,
+  p_value = model_X_Y_Z$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_X_Y_Z),
+  Main_Effect_X2 = get_main_effect_X2(model_X_Y_Z)
+)
+
+model_XY <- loglm(~ movie * gender, data = table4)
+results[["XY"]] <- c(
+  Chi2 = model_XY$lrt,
+  df = model_XY$df,
+  p_value = model_XY$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_XY),
+  Main_Effect_X2 = get_main_effect_X2(model_XY)
+)
+
+model_YZ <- loglm(~ gender * age, data = table4)
+results[["YZ"]] <- c(
+  Chi2 = model_YZ$lrt,
+  df = model_YZ$df,
+  p_value = model_YZ$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_YZ),
+  Main_Effect_X2 = get_main_effect_X2(model_YZ)
+)
+
+model_XZ <- loglm(~ movie * age, data = table4)
+results[["XZ"]] <- c(
+  Chi2 = model_XZ$lrt,
+  df = model_XZ$df,
+  p_value = model_XZ$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_XZ),
+  Main_Effect_X2 = get_main_effect_X2(model_XZ)
+)
+
+model_X_Y <- loglm(~ movie + gender, data = table4)
+results[["X/Y"]] <- c(
+  Chi2 = model_X_Y$lrt,
+  df = model_X_Y$df,
+  p_value = model_X_Y$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_X_Y),
+  Main_Effect_X2 = get_main_effect_X2(model_X_Y)
+)
+
+model_Y_Z <- loglm(~ gender + age, data = table4)
+results[["Y/Z"]] <- c(
+  Chi2 = model_Y_Z$lrt,
+  df = model_Y_Z$df,
+  p_value = model_Y_Z$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_Y_Z),
+  Main_Effect_X2 = get_main_effect_X2(model_Y_Z)
+)
+
+model_X_Z <- loglm(~ movie + age, data = table4)
+results[["X/Z"]] <- c(
+  Chi2 = model_X_Z$lrt,
+  df = model_X_Z$df,
+  p_value = model_X_Z$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_X_Z),
+  Main_Effect_X2 = get_main_effect_X2(model_X_Z)
+)
+
+model_X <- loglm(~ movie, data = table4)
+results[["X"]] <- c(
+  Chi2 = model_X$lrt,
+  df = model_X$df,
+  p_value = model_X$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_X),
+  Main_Effect_X2 = get_main_effect_X2(model_X)
+)
+
+model_Y <- loglm(~ gender, data = table4)
+results[["Y"]] <- c(
+  Chi2 = model_Y$lrt,
+  df = model_Y$df,
+  p_value = model_Y$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_Y),
+  Main_Effect_X2 = get_main_effect_X2(model_Y)
+)
+
+model_Z <- loglm(~ age, data = table4)
+results[["Z"]] <- c(
+  Chi2 = model_Z$lrt,
+  df = model_Z$df,
+  p_value = model_Z$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_Z),
+  Main_Effect_X2 = get_main_effect_X2(model_Z)
+)
+
+model_equal <- loglm(~ 1, data = table4)
+results[["1"]] <- c(
+  Chi2 = model_equal$lrt,
+  df = model_equal$df,
+  p_value = model_equal$p.value,
+  Theoretical_Frequency = get_theoretical_frequency(model_equal),
+  Main_Effect_X2 = get_main_effect_X2(model_equal)
+)
+
+results_table <- do.call(rbind, results)
+results_table <- as.data.frame(results_table)
+
+print(results_table)
+```
+
